@@ -2,15 +2,16 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
-import os
-from dotenv import load_dotenv
 
-# Load environment variables 
-load_dotenv()
+# --- Initialize Firebase once ---
+firebase_secrets = dict(st.secrets["firebase"])
 
-# --- Initialize Firebase (only once) ---
+# Fix the newlines in the private key
+firebase_secrets["private_key"] = firebase_secrets["private_key"].replace("\\n", "\n")
+
+# Initialize Firebase
+cred = credentials.Certificate(firebase_secrets)
 if not firebase_admin._apps:
-    cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))  
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()

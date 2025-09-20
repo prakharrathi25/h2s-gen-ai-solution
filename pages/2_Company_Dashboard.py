@@ -2,8 +2,6 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
-import os
-from dotenv import load_dotenv
 import streamlit as st
 import google.generativeai as genai
 import json
@@ -11,17 +9,15 @@ import json
 # Set page config
 st.set_page_config(page_title="Startup Dashboard", page_icon="📊", layout="wide")
 
-# Load environment variables
-load_dotenv()
-
 # --- Initialize Firebase once ---
-firebase_key = dict(st.secrets["firebase"])
+firebase_secrets = dict(st.secrets["firebase"])
 
 # Fix the newlines in the private key
-firebase_key["private_key"] = firebase_key["private_key"].replace("\\n", "\n")
+firebase_secrets["private_key"] = firebase_secrets["private_key"].replace("\\n", "\n")
 
+# Initialize Firebase
+cred = credentials.Certificate(firebase_secrets)
 if not firebase_admin._apps:
-    cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))  
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
