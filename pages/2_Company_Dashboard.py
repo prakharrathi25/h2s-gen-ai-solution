@@ -15,6 +15,11 @@ st.set_page_config(page_title="Startup Dashboard", page_icon="📊", layout="wid
 load_dotenv()
 
 # --- Initialize Firebase once ---
+firebase_key = dict(st.secrets["firebase"])
+
+# Fix the newlines in the private key
+firebase_key["private_key"] = firebase_key["private_key"].replace("\\n", "\n")
+
 if not firebase_admin._apps:
     cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))  
     firebase_admin.initialize_app(cred)
@@ -111,7 +116,7 @@ st.divider()
 # --- Streamlit Chat ---
 
 # Configure Gemini
-genai.configure(api_key=os.getenv("GENAI_API_KEY"))  
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])  
 
 # Title
 st.header("Tuning Machines Chatbot")
