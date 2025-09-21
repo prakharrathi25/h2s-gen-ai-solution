@@ -66,8 +66,7 @@ else:
         Step 1: For each of the six sections below, provide a strength - high, medium or low based on the data provided. 
 
         Step 2: Digest the stength above and based on the weightages below, provide a final recommendation and a composite score. The composite score is a weighted average based on the strength of each section and the weight assigned to it. High - 3 points, Medium - 2 point and low - 1 point. Not Important - 0 points. Somewhat Important - 1 point. Important - 2 points. Very Important - 3 points. Most Important - 4 points.
-        The maximum score is 12 (if all sections are high and most important) and minimum score is 0 (if all sections are low and not important).
-        
+              
 
         Founder Analysis Weightage: {founder_weight}
         Industry Analysis Weightage: {industry_weight}
