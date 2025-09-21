@@ -35,7 +35,7 @@ else:
     selected_company_id = st.selectbox(
         "Select a company", 
         options=list(companies.keys()), 
-        format_func=lambda x: companies[x].get("name", "Unnamed")
+        format_func=lambda x: companies[x].get("company_analysed", "Unnamed")
     )
 
     if selected_company_id:
@@ -44,7 +44,7 @@ else:
         # Convert company_data into context
         company_context_str = json.dumps(company_data, indent=2)
 
-        st.header(f"{company_data.get('name')} ({company_data.get('hq_location', '-')})")
+        st.header(f"{company_data.get('company_analysed')}")
 
         # --- Show Summary ---
         st.subheader("📌 Company Investment Recommendation")
@@ -58,112 +58,136 @@ else:
         externalities_weight = col1.select_slider("Externalities & Risks Weightage", options=["Not Important", "Somewhat Important", "Important", "Very Important", "Most Important"], value="Somewhat Important")
         competition_weight = col2.select_slider("Competition Analysis Weightage", options=["Not Important", "Somewhat Important", "Important", "Very Important", "Most Important"], value="Somewhat Important")
 
-        # --- Recommendation Summary Based on Weights ---
-        company_recommendation_prompt = f"""
+        # Convert each weight to a numeric scale (0-5)
+        weight_map = {
+            "Not Important": 0,
+            "Somewhat Important": 1,
+            "Important": 3,
+            "Very Important": 4,
+            "Most Important": 5
+        }
+
+        weights = {
+            "founder": weight_map[founder_weight],
+            "industry": weight_map[industry_weight],
+            "product": weight_map[product_weight],
+            "financial": weight_map[financial_weight],
+            "externalities": weight_map[externalities_weight],
+            "competition": weight_map[competition_weight]
+        }
+
+        # Create a recommendation score based on the assement and the weights assigned. Assessment weights are in the json. 
+        founder_assessment = company_data.get("founder_analysis", {}).get("assessment").get("score", 0)
+        industry_assessment = company_data.get("industry_analysis", {}).get("assessment").get("score", 0)
+        product_assessment = company_data.get("product_analysis", {}).get("assessment").get("score", 0)
+        financial_assessment = company_data.get("financial_analysis", {}).get("assessment").get("score", 0)
+        externalities_assessment = company_data.get("externalities_analysis", {}).get("assessment").get("score", 0)
+        competition_assessment = company_data.get("competition_analysis", {}).get("assessment").get("score", 0)
         
-        You are an expert investment analyst. Use the following company analysis data to answer question: {company_context_str}
+        # Total weighted is a weighted average of the assessments
+        total_weighted_score = (
+            (founder_assessment * weights["founder"]) +
+            (industry_assessment * weights["industry"]) +
+            (product_assessment * weights["product"]) +
+            (financial_assessment * weights["financial"]) +
+            (externalities_assessment * weights["externalities"]) +
+            (competition_assessment * weights["competition"])
+        ) / (sum(weights.values()) if sum(weights.values()) > 0 else 1)
+        total_weighted_score = round(total_weighted_score, 3)
 
-        Step 1: For each of the six sections below, provide a strength - high, medium or low based on the data provided. 
+        # Display the recommendation
+        st.metric("Overall Investment Recommendation Score", f"{total_weighted_score*20} / 100.0")
 
-        Step 2: Digest the stength above and based on the weightages below, provide a final recommendation and a composite score. The composite score is a weighted average based on the strength of each section and the weight assigned to it. High - 3 points, Medium - 2 point and low - 1 point. Not Important - 0 points. Somewhat Important - 1 point. Important - 2 points. Very Important - 3 points. Most Important - 4 points.
-              
-
-        Founder Analysis Weightage: {founder_weight}
-        Industry Analysis Weightage: {industry_weight}
-        Product Analysis Weightage: {product_weight}
-        Financial Analysis Weightage: {financial_weight} 
-        Externalities & Risks Weightage: {externalities_weight}
-        Competition Analysis Weightage: {competition_weight}
-
-        Based on the weights assigned to each section below, provide a concise investment recommendation for the company.
-        Use bullet points if applicable along with a brief summary.
-
-    
-        Answer:
-        """
-
-        # Call Gemini (using flash to avoid quota issues)
-        if st.button("Generate Recommendation Summary"):
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(company_recommendation_prompt)
-
-            # Add AI response to history
-            prompt_reply = response.text
-
-            st.success("Recommendation Summary Generated!")
-            st.info(prompt_reply)
-        else:
-            st.warning("Click the button above to generate the recommendation summary based on the weights assigned.")
 
         # Introduce detailed analysis
         st.info("Expand the sections below for detailed analysis.")
+        analysis_data = company_data
+        
+        # --- Section: Founder Analysis ---
+        with st.expander("👥 Founder Analysis", expanded=False):
+            founder = analysis_data["founder_analysis"]
+            st.write("**Founder Count:**", founder["founder_count"])
+            st.write("**Key Strengths:**")
+            for s in founder["key_strengths"]:
+                st.markdown(f"- {s}")
+            st.write("**Identified Gaps:**")
+            for g in founder["identified_gaps"]:
+                st.markdown(f"- {g}")
+            st.write("**Summary:**", founder["summary"])
+            st.write("**Assessment:**", founder["assessment"]["rating"], "(", founder["assessment"]["score"], ")")
+            st.caption(founder["assessment"]["rationale"])
 
-        # --- Founder Analysis ---
-        if "founder_analysis" in company_data:
-            fa = company_data["founder_analysis"]
-            with st.expander("Founder Analysis", icon="👥"): 
-                st.subheader("👥 Founder Analysis")
-                st.metric("Founder Count", fa.get("founder_count", 0))
-                st.write("**Strengths:**")
-                st.write("\n- " + "\n- ".join(fa.get("key_strengths", [])))
-                st.write("**Gaps:**")
-                st.write("\n- " + "\n- ".join(fa.get("identified_gaps", [])))
-                st.info(fa.get("summary", ""))
+        # --- Section: Industry Analysis ---
+        with st.expander("🏭 Industry Analysis", expanded=False):
+            industry = analysis_data["industry_analysis"]
+            st.write("**Claimed Industry:**", industry["claimed_industry"])
+            st.write("**Activity-Based Industry:**", industry["activity_based_industry"])
+            st.write("**Summary:**", industry["summary"])
+            st.write("**Assessment:**", industry["assessment"]["rating"], "(", industry["assessment"]["score"], ")")
+            st.caption(industry["assessment"]["rationale"])
 
-        # --- Industry Analysis ---
-        if "industry_analysis" in company_data:
-            ia = company_data["industry_analysis"]
-            with st.expander("Industry Analysis", icon="🏭"): 
-                st.subheader("🏭 Industry Analysis")
-                st.write(f"**Claimed Industry:** {ia.get('claimed_industry')}")
-                st.write(f"**Activity-Based Industry:** {ia.get('activity_based_industry')}")
-                st.write(f"**Aligned with Investment Thesis:** {ia.get('is_aligned_with_thesis')}")
-                st.info(ia.get("summary", ""))
+            st.subheader("Porter’s Five Forces")
+            for force, detail in industry["porter_five_forces_summary"].items():
+                st.markdown(f"- **{force.replace('_',' ').title()}**: {detail}")
 
-        # --- Product Analysis ---
-        if "product_analysis" in company_data:
-            pa = company_data["product_analysis"]
-            with st.expander("Product Analysis", icon="📦"): 
-                st.subheader("📦 Product Analysis")
-                st.write(f"**Core Product:** {pa.get('core_product_offering')}")
-                st.write(f"**Problem Solved:** {pa.get('problem_solved')}")
-                st.success(pa.get("summary", ""))
+        # --- Section: Product Analysis ---
+        with st.expander("🛍 Product Analysis", expanded=False):
+            product = analysis_data["product_analysis"]
+            st.write("**Core Product Offering:**", product["core_product_offering"])
+            st.write("**Problem Solved:**", product["problem_solved"])
+            st.write("**Value Proposition (Qualitative):**", product["value_proposition_qualitative"])
+            st.write("**Value Proposition (Quantitative):**", product["value_proposition_quantitative"])
+            st.write("**Summary:**", product["summary"])
+            st.write("**Assessment:**", product["assessment"]["rating"], "(", product["assessment"]["score"], ")")
+            st.caption(product["assessment"]["rationale"])
 
-        # --- Financial Analysis ---
-        if "financial_analysis" in company_data:
-            fa = company_data["financial_analysis"]
-            with st.expander("Financial Analysis", icon="💰"): 
-                st.subheader("💰 Financial Analysis")
-                st.metric("TAM", f"${fa.get('market_size_TAM', 0):,.0f}")
-                st.metric("Required Market Share (3yr)", f"{fa.get('required_market_share_for_3yr_amortization', 0)}%")
-                st.write("**Unit Economics:**")
-                st.write(fa.get("unit_economics_summary", ""))
-                st.success(fa.get("summary", ""))
+        # --- Section: Externalities ---
+        with st.expander("🌍 Externalities & Risks", expanded=False):
+            ext = analysis_data["externalities_analysis"]
+            for risk in ext["identified_risks"]:
+                st.markdown(f"**{risk['category']} Risk**: {risk['risk_description']}")
+                st.caption(f"Impact: {risk['impact']} | {risk['rationale']}")
+            st.write("**Summary:**", ext["summary"])
+            st.write("**Assessment:**", ext["assessment"]["rating"], "(", ext["assessment"]["score"], ")")
+            st.caption(ext["assessment"]["rationale"])
 
-        # --- Externalities & Risks ---
-        if "externalities_analysis" in company_data:
-            ea = company_data["externalities_analysis"]
-            with st.expander("Externalities & Risks", icon="⚠️"):
-                st.subheader("⚠️ Externalities & Risks")
-                st.write("**Key Threats:**")
-                st.write("\n- " + "\n- ".join(ea.get("key_threats", [])))
-                st.error(ea.get("summary", ""))
+        # --- Section: Competition ---
+        with st.expander("⚔️ Competition Analysis", expanded=False):
+            comp = analysis_data["competition_analysis"]
+            st.write("**Direct Competitors:**")
+            for c in comp["direct_competitors"]:
+                st.markdown(f"- {c}")
+            st.write("**Best Alternative Solution:**", comp["best_alternative_solution"])
+            st.write("**Competitive Advantage:**", comp["competitive_advantage"])
+            st.write("**Summary:**", comp["summary"])
+            st.write("**Assessment:**", comp["assessment"]["rating"], "(", comp["assessment"]["score"], ")")
+            st.caption(comp["assessment"]["rationale"])
 
-        # --- Competition Analysis ---
-        if "competition_analysis" in company_data:
-            ca = company_data["competition_analysis"]
-            with st.expander("Competition Analysis", icon="📈"):
-                st.subheader("📈 Competition")
-                st.write("**Direct Competitors:**")
-                st.write("\n- " + "\n- ".join(ca.get("direct_competitors", [])))
-                st.write(f"**Advantage:** {ca.get('competitive_advantage', '')}")
-                st.success(ca.get("summary", ""))
+        # --- Section: Financials ---
+        with st.expander("💰 Financial Analysis", expanded=False):
+            fin = analysis_data["financial_analysis"]
+            st.write("**TAM:**", fin["analyst_sizing"]["tam"])
+            st.write("**SAM:**", fin["analyst_sizing"]["sam"])
+            st.write("**SOM:**", fin["analyst_sizing"]["som"])
+            st.caption(fin["analyst_sizing"]["som_rationale"])
+            st.write("**Unit Economics:**", fin["unit_economics"])
+            st.write("**3-Year Viability Check:**", fin["three_year_viability_check"])
+            st.write("**Summary:**", fin["summary"])
+            st.write("**Assessment:**", fin["assessment"]["rating"], "(", fin["assessment"]["score"], ")")
+            st.caption(fin["assessment"]["rationale"])
 
-        # --- Synergy Analysis ---
-        # if "synergy_analysis" in company_data:
-        #     sa = company_data["synergy_analysis"]
-        #     st.subheader("🤝 Synergy Analysis")
-        #     st.write(sa.get("summary", ""))
+        # --- Section: Synergies ---
+        # with st.expander("🤝 Synergy Analysis", expanded=False):
+        #     syn = analysis_data["synergy_analysis"]
+        #     if syn["potential_synergies"]:
+        #         st.write("**Potential Synergies:**")
+        #         for s in syn["potential_synergies"]:
+        #             st.markdown(f"- {s}")
+        #     else:
+        #         st.write("No portfolio synergies identified.")
+        #     st.write("**Summary:**", syn["summary"])
+        #     st.write("**Assessment:**", syn["assessment"]["rating"], "(", syn["assessment"]["score"], ")")
+        #     st.caption(syn["assessment"]["rationale"])
 
 st.divider()
 # --- Streamlit Chat ---
