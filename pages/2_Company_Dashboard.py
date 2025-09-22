@@ -96,7 +96,7 @@ else:
         total_weighted_score = round(total_weighted_score, 3)
 
         # Display the recommendation
-        st.metric("Overall Investment Recommendation Score", f"{total_weighted_score*20} / 100.0")
+        st.metric("Overall Investment Recommendation Score", f"{round(total_weighted_score*20, 2)} / 100.0")
 
 
         # Introduce detailed analysis
