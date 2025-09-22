@@ -11,6 +11,7 @@ st.sidebar.success("Select a demo above.")
 
 st.markdown(
     """
-    Some steps on how to use the app. Just look to the left sidebar.
+    You can register your company or analyze a company through the options on the left. 
 """
+
 )
