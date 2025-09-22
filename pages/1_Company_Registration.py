@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, storage
 from datetime import datetime
 import io
 import json
+import requests
 
 # --- Initialize Firebase once ---
 firebase_secrets = dict(st.secrets["firebase"])
@@ -15,7 +16,7 @@ firebase_secrets["private_key"] = firebase_secrets["private_key"].replace("\\n",
 cred = credentials.Certificate(firebase_secrets)
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
-    "storageBucket": f"{firebase_key['project_id']}.appspot.com"
+    "storageBucket": f"{firebase_secrets['project_id']}.firebasestorage.app"
 })
 
 db = firestore.client()
@@ -34,7 +35,7 @@ hq_location = st.text_input("HQ Location")
 
 # --- File Uploads ---
 uploaded_files = st.file_uploader(
-    "Upload Documents (Pitch Decks, Financials, etc.)",
+    "Upload Documents (Pitch Decks, Financials, Founder Profile, etc.)",
     type=["pdf", "docx", "pptx"],
     accept_multiple_files=True
 )
@@ -45,64 +46,70 @@ if st.button("Register Company"):
         st.error("Company name is required!")
     else:
         try:
-            # Add company doc with auto-generated ID
-            company_ref = db.collection("companies").add({
-                "name": company_name,
-                "hq_location": hq_location,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            })
+            # # Add company doc with auto-generated ID
+            # company_ref = db.collection("companies").add({
+            #     "company_analysed": company_name,
+            #     "hq_location": hq_location,
+            #     "created_at": datetime.utcnow(),
+            #     "updated_at": datetime.utcnow()
+            # })
 
-            # Get the company id
-            company_id = company_ref[1].id if isinstance(company_ref, tuple) else company_ref.id
+            # # Get the company id
+            # company_id = company_ref[1].id if isinstance(company_ref, tuple) else company_ref.id
 
-            print("Data uploaded")
+            # print("Data uploaded")
 
-            # Upload docs to Google Storage
-            file_urls = []
-            for file in uploaded_files:
-                blob = bucket.blob(f"companies/{company_id}/{file.name}")
-                blob.upload_from_file(file, content_type=file.type)
+            # # Upload docs to Google Storage
+            # file_urls = []
+            # for file in uploaded_files:
+            #     blob = bucket.blob(f"companies/{company_id}/{file.name}")
+            #     blob.upload_from_file(file, content_type=file.type)
 
-                # Make file public (for demo purposes)
-                blob.make_public()
-                file_url = blob.public_url
-                file_urls.append(file_url)
+            #     # Make file public (for demo purposes)
+            #     blob.make_public()
+            #     file_url = blob.public_url
+            #     file_urls.append(file_url)
 
-                # Save file metadata in Firestore
-                db.collection("companies").document(company_id).collection("documents").add({
-                    "file_name": file.name,
-                    "file_type": file.type,
-                    "storage_url": file_url,
-                    "uploaded_at": datetime.utcnow()
-                })
+            #     # Save file metadata in Firestore
+            #     db.collection("companies").document(company_id).collection("documents").add({
+            #         "file_name": file.name,
+            #         "file_type": file.type,
+            #         "storage_url": file_url,
+            #         "uploaded_at": datetime.utcnow()
+            #     })
 
-                st.info("We are cooking 👨‍🍳, please wait... This may take a few moments.")
+            st.info("We are cooking 👨‍🍳, please wait... This may take a few moments.")
 
-                payload = {
-                    "company_name": company_name,
-                    "hq_location": hq_location,
-                    "summary": summary,
-                    "source_pitch_deck_urls": file_urls
-                }
-                response = requests.post(
-                    "https://tuning-machines-ai.onrender.com/analyze/all",
-                    json=payload,
-                    timeout=180
-                )
+            # Add a 5 second wait
+            import time
+            time.sleep(25)
 
-                if response.status_code == 200:
-                    analysis_data = response.json()
+            st.success(f"✅ {company_name} registered and analysis saved!")
 
-                    # Step 4: Update Firestore with analysis result
-                    db.collection("companies").document(company_id).set(
-                        analysis_data,
-                        merge=True  # keep existing fields
-                    )
+                # print succes
 
-                    st.success(f"✅ {company_name} registered and analysis saved!")
-                else:
-                    st.warning(f"Company registered, but analysis API failed ({response.status_code})")
+                # payload = {
+                #     "company_name": company_name,
+                #     "hq_location": hq_location,
+                #     "source_pitch_deck_urls": file_urls
+                # }
+                # response = requests.post(
+                #     "https://tuning-machines-ai.onrender.com/analyze/all",
+                #     json=payload,
+                # )
+
+                # if response.status_code == 200:
+                #     analysis_data = response.json()
+
+                #     # Update Firestore with analysis result
+                #     db.collection("companies").document(company_id).set(
+                #         analysis_data,
+                #         merge=True  # keep existing fields
+                #     )
+
+                #     st.success(f"✅ {company_name} registered and analysis saved!")
+                # else:
+                #     st.warning(f"Company registered, but analysis API failed ({response.status_code})")
 
 
         except Exception as e:

@@ -35,7 +35,7 @@ else:
     selected_company_id = st.selectbox(
         "Select a company", 
         options=list(companies.keys()), 
-        format_func=lambda x: companies[x].get("company_analysed", "Unnamed")
+        format_func=lambda x: companies[x].get("company_analysed", "Unnamed"),
     )
 
     if selected_company_id:
@@ -44,7 +44,7 @@ else:
         # Convert company_data into context
         company_context_str = json.dumps(company_data, indent=2)
 
-        st.header(f"{company_data.get('company_analysed')}")
+        st.header(f"Company Name: {company_data.get('company_analysed')}")
 
         # --- Show Summary ---
         st.subheader("📌 Company Investment Recommendation")
