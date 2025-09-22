@@ -1,6 +1,6 @@
 # 🚀 AI Analyst for Startup Evaluation
 
-An **AI-powered analyst platform** that helps investors evaluate startups by synthesizing founder materials and public data into **concise, actionable deal notes and dashboards**. Built with **Streamlit, Firebase, and Google Gemini**.
+An **AI-powered analyst platform** that helps investors evaluate startups by synthesizing founder materials and public data into **concise, actionable deal notes and dashboards**. Built with **Streamlit, Firebase, and Google Gemini**. You can access the website [here](https://tm-vc-analyst.streamlit.app/Company_Dashboard)
 
 ---
 
@@ -43,7 +43,6 @@ An **AI-powered analyst platform** that helps investors evaluate startups by syn
 * **Database**: [Firebase Firestore](https://firebase.google.com/docs/firestore)
 * **Authentication & Storage**: Firebase Admin SDK
 * **LLM**: [Google Gemini API](https://ai.google.dev/) (`gemini-1.5-flash`)
-* **Cloud Hosting**: Google Cloud Run
 
 ---
 
