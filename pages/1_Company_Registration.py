@@ -68,9 +68,7 @@ if st.button("Register Company"):
 
             # Get the company id
             company_id = company_ref[1].id if isinstance(company_ref, tuple) else company_ref.id
-
-            print("Data uploaded")
-
+            
             # Upload docs to Google Storage
             file_urls = []
             for file in uploaded_files:
@@ -103,12 +101,9 @@ if st.button("Register Company"):
             )
 
             if response.status_code == 200:
-                
-                print(response.text)
 
                 # Convert response string to json format 
                 analysis_data = json.loads(json.loads(response.text))
-                print(analysis_data, type(analysis_data))
 
                 # Update Firestore with analysis result
                 db.collection("companies").document(company_id).set(
